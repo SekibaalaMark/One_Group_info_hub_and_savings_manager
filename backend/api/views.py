@@ -48,7 +48,7 @@ class VerifyEmailCodeView(APIView):
         if user.confirmation_code != code:
             return Response({"error": "Invalid confirmation code."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.is_active = True
+        user.is_verified = True
         user.confirmation_code = None
         user.save()
 
