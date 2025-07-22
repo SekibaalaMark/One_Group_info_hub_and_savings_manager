@@ -28,3 +28,28 @@ class UserRegistrationView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VerifyEmailCodeView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        code = request.data.get('confirmation_code')
+
+        if not email or not code:
+            return Response(
+                {"error": "Email and confirmation code are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.confirmation_code != code:
+            return Response({"error": "Invalid confirmation code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.confirmation_code = None
+        user.save()
+
+        return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
