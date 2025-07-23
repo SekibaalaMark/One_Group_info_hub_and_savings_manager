@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
-from .serializers import UserRegistrationSerializer
+from .serializers import *
 from .models import *
 from rest_framework_simplejwt.tokens import RefreshToken  # Optional, for JWT auth
 
@@ -95,3 +95,36 @@ class UserLoginView(APIView):
                 "role": user.role,
             }
         }, status=status.HTTP_200_OK)
+
+
+
+# users/views.py
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+
+
+class PasswordResetRequestView(APIView):
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = CustomUser.objects.get(email=email)
+            except CustomUser.DoesNotExist:
+                return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_link = f"http://127.0.0.1:8000/api/reset-password-confirm/{uid}/{token}/"
+
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Click the link to reset your password:\n{reset_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+
+            return Response({"message": "Password reset link sent."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
