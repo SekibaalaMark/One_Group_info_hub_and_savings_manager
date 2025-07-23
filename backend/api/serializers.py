@@ -67,3 +67,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         # Email sending should happen in the view after this serializer is used
         return user
+
+# users/serializers.py
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
