@@ -72,3 +72,30 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+# users/serializers.py
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.hashers import make_password
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=6)
+
+    def validate(self, data):
+        try:
+            uid = urlsafe_base64_decode(data['uid']).decode()
+            self.user = CustomUser.objects.get(pk=uid)
+        except Exception:
+            raise serializers.ValidationError("Invalid UID")
+
+        if not default_token_generator.check_token(self.user, data['token']):
+            raise serializers.ValidationError("Invalid or expired token")
+
+        return data
+
+    def save(self):
+        self.user.password = make_password(self.validated_data['new_password'])
+        self.user.save()
