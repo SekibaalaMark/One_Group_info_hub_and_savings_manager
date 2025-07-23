@@ -5,7 +5,8 @@ from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
 from .serializers import UserRegistrationSerializer
-from .models import CustomUser
+from .models import *
+from rest_framework_simplejwt.tokens import RefreshToken  # Optional, for JWT auth
 
 class UserRegistrationView(APIView):
     def post(self, request):
@@ -53,3 +54,44 @@ class VerifyEmailCodeView(APIView):
         user.save()
 
         return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
+
+
+# users/views.py
+
+
+
+class UserLoginView(APIView):
+    def post(self, request):
+        username= request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response(
+                {"error": "Username and password are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if not user.check_password(password):
+            return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if not user.is_verified:
+            return Response({"error": "Email not verified."}, status=status.HTTP_403_FORBIDDEN)
+
+        # If you're using JWT, return tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "message": "Login successful.",
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+            }
+        }, status=status.HTTP_200_OK)
