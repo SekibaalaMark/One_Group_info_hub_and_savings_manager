@@ -107,42 +107,37 @@ class SavingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Saving
-        fields = [
-            'username',
-            'amount_saved',
-            'total_savings',
-            'total_loan',
-            'net_saving',
-            'date_saved',
-        ]
-        read_only_fields = ['total_savings', 'total_loan', 'net_saving', 'date_saved']
+        fields = ['username', 'amount_saved', 'date_saved', 'total_savings', 'total_loan', 'net_saving']
+        read_only_fields = ['date_saved', 'total_savings', 'total_loan', 'net_saving']
 
     def create(self, validated_data):
         username = validated_data.pop('username')
         user = CustomUser.objects.get(username=username)
 
-        # Total previous savings
-        previous_savings_total = Saving.objects.filter(person_saving=user).aggregate(
+        # 1. Create new saving record
+        saving = Saving.objects.create(
+            person_saving=user,
+            amount_saved=validated_data['amount_saved']
+        )
+
+        # 2. Recalculate totals
+        total_savings = Saving.objects.filter(person_saving=user).aggregate(
             total=models.Sum('amount_saved')
         )['total'] or 0
-        new_total_savings = previous_savings_total + validated_data['amount_saved']
 
-        # Total previous loans
         total_loans = Loan.objects.filter(person_loaning=user).aggregate(
             total=models.Sum('amount_loaned')
         )['total'] or 0
 
-        # Net savings
-        net_saving = new_total_savings - total_loans
+        net_saving = total_savings - total_loans
 
-        # Save the record
-        saving = Saving.objects.create(
-            person_saving=user,
-            amount_saved=validated_data['amount_saved'],
-            total_savings=new_total_savings,
+        # 3. Update all existing savings for the user
+        Saving.objects.filter(person_saving=user).update(
+            total_savings=total_savings,
             total_loan=total_loans,
             net_saving=net_saving
         )
+
         return saving
 
 
