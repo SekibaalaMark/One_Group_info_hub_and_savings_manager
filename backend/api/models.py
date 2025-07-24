@@ -14,6 +14,18 @@ class CustomUser(AbstractUser):
     #is_active = models.BooleanField(default=False)
     confirmation_code = models.CharField(max_length=6, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
-
     def __str__(self):
         return self.username
+
+
+
+class Saving(models.Model):  # ✅ Fixed typo: should be models.Model not models
+    amount_saved = models.IntegerField()
+    person_saving = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="savings")
+    date_saved = models.DateTimeField(auto_now_add=True)
+    total_savings = models.IntegerField()
+    total_loan = models.IntegerField()
+    net_saving = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.owner.username} saved {self.amount}"
