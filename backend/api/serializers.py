@@ -99,3 +99,86 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def save(self):
         self.user.password = make_password(self.validated_data['new_password'])
         self.user.save()
+
+
+
+class SavingSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = Saving
+        fields = [
+            'username',
+            'amount_saved',
+            'total_savings',
+            'total_loan',
+            'net_saving',
+            'date_saved',
+        ]
+        read_only_fields = ['total_savings', 'total_loan', 'net_saving', 'date_saved']
+
+    def create(self, validated_data):
+        username = validated_data.pop('username')
+        user = CustomUser.objects.get(username=username)
+
+        # Total previous savings
+        previous_savings_total = Saving.objects.filter(person_saving=user).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+        new_total_savings = previous_savings_total + validated_data['amount_saved']
+
+        # Total previous loans
+        total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+
+        # Net savings
+        net_saving = new_total_savings - total_loans
+
+        # Save the record
+        saving = Saving.objects.create(
+            person_saving=user,
+            amount_saved=validated_data['amount_saved'],
+            total_savings=new_total_savings,
+            total_loan=total_loans,
+            net_saving=net_saving
+        )
+        return saving
+
+
+class LoanSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = Loan
+        fields = ['username', 'amount_loaned', 'date_loaned']
+        read_only_fields = ['date_loaned']
+
+    def create(self, validated_data):
+        username = validated_data.pop('username')
+        user = CustomUser.objects.get(username=username)
+
+        # 1. Create the new Loan entry
+        loan = Loan.objects.create(
+            person_loaning=user,
+            amount_loaned=validated_data['amount_loaned']
+        )
+
+        # 2. Calculate totals
+        total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+
+        total_savings = Saving.objects.filter(person_saving=user).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+
+        net_saving = total_savings - total_loans
+
+        # 3. Update ALL Saving records for this user
+        Saving.objects.filter(person_saving=user).update(
+            total_loan=total_loans,
+            net_saving=net_saving
+        )
+
+        return loan
