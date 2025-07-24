@@ -19,7 +19,7 @@ class CustomUser(AbstractUser):
 
 
 
-class Saving(models.Model):  # ✅ Fixed typo: should be models.Model not models
+class Saving(models.Model):
     amount_saved = models.IntegerField()
     person_saving = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="savings")
     date_saved = models.DateTimeField(auto_now_add=True)
@@ -28,4 +28,13 @@ class Saving(models.Model):  # ✅ Fixed typo: should be models.Model not models
     net_saving = models.IntegerField()
 
     def __str__(self):
-        return f"{self.owner.username} saved {self.amount}"
+        return f"{self.person_saving.username} saved {self.amount_saved}"
+
+
+class Loan(models.Model):
+    amount_loaned = models.IntegerField()
+    person_loaning = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="loans")
+    date_loaned = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.person_loaning.username} loaned {self.amount_loaned}"
