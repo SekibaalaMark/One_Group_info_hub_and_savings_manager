@@ -102,6 +102,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 
 
+from django.db import transaction
+from django.db import models
+from rest_framework import serializers
+
+from django.db import transaction
+from django.db import models
+from rest_framework import serializers
+
 class SavingSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
 
@@ -112,33 +120,41 @@ class SavingSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         username = validated_data.pop('username')
-        user = CustomUser.objects.get(username=username)
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError(f"User with username '{username}' does not exist.")
 
-        # 1. Create new saving record
-        saving = Saving.objects.create(
-            person_saving=user,
-            amount_saved=validated_data['amount_saved']
-        )
+        with transaction.atomic():
+            # Calculate new total savings
+            current_total_savings = Saving.objects.filter(person_saving=user).aggregate(
+                total=models.Sum('amount_saved')
+            )['total'] or 0
+            
+            new_total_savings = current_total_savings + validated_data['amount_saved']
 
-        # 2. Recalculate totals
-        total_savings = Saving.objects.filter(person_saving=user).aggregate(
-            total=models.Sum('amount_saved')
-        )['total'] or 0
+            # For now, set loans to 0 until Loan table is properly set up
+            total_loans = 0
+            net_saving = new_total_savings - total_loans
 
-        total_loans = Loan.objects.filter(person_loaning=user).aggregate(
-            total=models.Sum('amount_loaned')
-        )['total'] or 0
+            # Create the new saving entry with all required fields
+            saving = Saving.objects.create(
+                person_saving=user,
+                amount_saved=validated_data['amount_saved'],
+                total_savings=new_total_savings,
+                total_loan=total_loans,
+                net_saving=net_saving
+            )
 
-        net_saving = total_savings - total_loans
+            # Update all existing saving records for this user
+            Saving.objects.filter(person_saving=user).exclude(id=saving.id).update(
+                total_savings=new_total_savings,
+                total_loan=total_loans,
+                net_saving=net_saving
+            )
 
-        # 3. Update all existing savings for the user
-        Saving.objects.filter(person_saving=user).update(
-            total_savings=total_savings,
-            total_loan=total_loans,
-            net_saving=net_saving
-        )
-
-        return saving
+            return saving
 
 
 class LoanSerializer(serializers.ModelSerializer):
