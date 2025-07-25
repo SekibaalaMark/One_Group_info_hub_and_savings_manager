@@ -249,3 +249,68 @@ class OverallTotalsView(APIView):
         return Response(data, status=status.HTTP_200_OK)
     
 
+
+
+from django.db.models import Sum, Count
+class DetailedTotalsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Overall totals
+        overall_savings = Saving.objects.aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+
+        overall_loans = Loan.objects.aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+
+        overall_net_savings = overall_savings - overall_loans
+
+        # Per-user summary
+        user_summaries = []
+        
+        # Get all users who have either savings or loans
+        users_with_activity = CustomUser.objects.filter(
+            models.Q(savings__isnull=False) | models.Q(loans__isnull=False)
+        ).distinct()
+
+        for user in users_with_activity:
+            user_savings = Saving.objects.filter(person_saving=user).aggregate(
+                total=models.Sum('amount_saved')
+            )['total'] or 0
+
+            user_loans = Loan.objects.filter(person_loaning=user).aggregate(
+                total=models.Sum('amount_loaned')
+            )['total'] or 0
+
+            user_net = user_savings - user_loans
+
+            user_summaries.append({
+                'username': user.username,
+                'total_savings': user_savings,
+                'total_loans': user_loans,
+                'net_savings': user_net
+            })
+
+        # Statistics
+        stats = {
+            'total_users': CustomUser.objects.count(),
+            'active_users': users_with_activity.count(),
+            'users_with_savings': Saving.objects.values('person_saving').distinct().count(),
+            'users_with_loans': Loan.objects.values('person_loaning').distinct().count(),
+            'total_transactions': Saving.objects.count() + Loan.objects.count()
+        }
+
+        data = {
+            'overall_totals': {
+                'overall_savings': overall_savings,
+                'overall_loans': overall_loans,
+                'overall_net_savings': overall_net_savings,
+                'currency': 'UGX'
+            },
+            'user_summaries': user_summaries,
+            'statistics': stats
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
