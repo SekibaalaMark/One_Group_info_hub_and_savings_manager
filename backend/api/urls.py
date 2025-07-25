@@ -9,4 +9,5 @@ urlpatterns = [
     path('password-reset-request/', PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('save/', SavingCreateView.as_view(), name='save-money'),
+    path('loan/', LoanCreateView.as_view(), name='loan-create'),
 ]
