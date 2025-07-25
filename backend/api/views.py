@@ -150,6 +150,12 @@ class PasswordResetConfirmView(APIView):
 
 from rest_framework import status, permissions
 
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+
 class SavingCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -159,3 +165,50 @@ class SavingCreateView(APIView):
             saving = serializer.save()
             return Response(SavingSerializer(saving).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LoanCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = LoanSerializer(data=request.data)
+        if serializer.is_valid():
+            loan = serializer.save()
+            return Response(LoanSerializer(loan).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+'''
+class SavingCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = SavingSerializer(data=request.data)
+        if serializer.is_valid():
+            saving = serializer.save()
+            return Response(SavingSerializer(saving).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# views.py
+
+
+
+from django.core.exceptions import ObjectDoesNotExist
+
+class LoanCreateAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]  # Or AllowAny for testing
+
+    def post(self, request):
+        serializer = LoanSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                loan = serializer.save()
+                return Response({
+                    "message": "Loan recorded successfully.",
+                    "data": LoanSerializer(loan).data
+                }, status=status.HTTP_201_CREATED)
+            except ObjectDoesNotExist:
+                return Response({"error": "Username not found."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+'''
+
+
