@@ -212,3 +212,40 @@ class LoanCreateAPIView(APIView):
 '''
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from django.db.models import Sum
+from django.db import models
+
+class OverallTotalsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Calculate overall totals across all users
+        overall_savings = Saving.objects.aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+
+        overall_loans = Loan.objects.aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+
+        overall_net_savings = overall_savings - overall_loans
+
+        # Count of total users with savings/loans
+        users_with_savings = Saving.objects.values('person_saving').distinct().count()
+        users_with_loans = Loan.objects.values('person_loaning').distinct().count()
+
+        data = {
+            'overall_savings': overall_savings,
+            'overall_loans': overall_loans,
+            'overall_net_savings': overall_net_savings,
+            'users_with_savings': users_with_savings,
+            'users_with_loans': users_with_loans,
+            'currency': 'UGX'  # or whatever currency you're using
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+    
+
