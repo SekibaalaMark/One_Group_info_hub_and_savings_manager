@@ -8,7 +8,13 @@ from .serializers import *
 from .models import *
 from rest_framework_simplejwt.tokens import RefreshToken  # Optional, for JWT auth
 
+from rest_framework.permissions import AllowAny
+
+
+
+
 class UserRegistrationView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -31,6 +37,7 @@ class UserRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailCodeView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         email = request.data.get('email')
         code = request.data.get('confirmation_code')
@@ -61,6 +68,7 @@ class VerifyEmailCodeView(APIView):
 
 
 class UserLoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         username= request.data.get('username')
         password = request.data.get('password')
@@ -137,4 +145,17 @@ class PasswordResetConfirmView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework import status, permissions
+
+class SavingCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = SavingSerializer(data=request.data)
+        if serializer.is_valid():
+            saving = serializer.save()
+            return Response(SavingSerializer(saving).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
