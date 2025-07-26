@@ -13,4 +13,5 @@ urlpatterns = [
     path('totals/', OverallTotalsView.as_view(), name='overall_totals'),
     path('detailed-totals/', DetailedTotalsView.as_view(), name='detailed_totals'),
     path('register-players/', PlayerRegistrationView.as_view(), name='player-reg'),
+    path('delete-player/<int:pk>/', PlayerDeleteByIdView.as_view()),
 ]
