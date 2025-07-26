@@ -314,3 +314,20 @@ class DetailedTotalsView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class PlayerRegistrationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        serializer = RegisterPlayerSerializer(data=request.data)
+        if serializer.is_valid():
+            player = serializer.save()
+            if request.user.role !="sports_manger":
+                return Response({"message":"Only the football manager adds players"},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            return Response(
+                {"message": "Player registered successfully."},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
