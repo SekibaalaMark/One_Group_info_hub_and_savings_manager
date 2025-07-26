@@ -208,3 +208,35 @@ class LoanSerializer(serializers.ModelSerializer):
             )
 
             return loan
+
+
+
+class RegisterPlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = ['name','position']
+        extra_kwargs ={
+            'name':{'required':True},
+            'position':{'required':True}
+        }
+        def validate(self, data):
+            name = data.get('name')
+            position = data.get('position')
+
+
+
+            if Player.objects.filter(name=name).exists():
+                raise serializers.ValidationError('Player with name already exists')
+
+            if position not in dict(CustomUser.POSITION):
+                raise serializers.ValidationError("Invalid role selected")
+            return data
+
+        def create(self, validated_data):
+            player = Player(
+                **validated_data,
+            )
+            player.save()
+
+            # Email sending should happen in the view after this serializer is used
+            return player
