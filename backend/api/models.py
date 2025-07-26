@@ -38,3 +38,17 @@ class Loan(models.Model):
 
     def __str__(self):
         return f"{self.person_loaning.username} loaned {self.amount_loaned}"
+
+
+class Player(models.Model):
+    POSITION = [('Forward','Forward'),
+                ('Defender','Defender'),
+                ('Midfielder','Midfield'),
+                ('Coach','Coach'),
+                ('Ass_Coach','Assistant Coach'),('Manager','Manager'),
+                ('Team_doctor','Team Doctor')]
+    name = models.CharField(max_length=150,unique=True)
+    position = models.CharField(max_length=20,choices=POSITION)
+
+    def __str__(self):
+        return self.name
