@@ -240,3 +240,22 @@ class RegisterPlayerSerializer(serializers.ModelSerializer):
 
             # Email sending should happen in the view after this serializer is used
             return player
+
+
+
+class DeletePlayerSerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+    def validate_name(self, value):
+        if not Player.objects.filter(name=value).exists():
+            raise serializers.ValidationError("No player with this name exists.")
+        return value
+
+
+from rest_framework import serializers
+from .models import Player
+
+class PlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = ['id', 'name', 'position']
