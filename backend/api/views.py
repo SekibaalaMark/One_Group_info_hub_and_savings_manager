@@ -331,3 +331,28 @@ class PlayerRegistrationView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+from rest_framework.generics import DestroyAPIView
+from .models import Player
+from .serializers import PlayerSerializer  # You can reuse this
+
+from rest_framework.generics import DestroyAPIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Player
+from .serializers import PlayerSerializer
+
+class PlayerDeleteByIdView(DestroyAPIView):
+    queryset = Player.objects.all()
+    serializer_class = PlayerSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        player_name = instance.name  # capture before deletion
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Player '{player_name}' has been successfully deleted."},
+            status=status.HTTP_200_OK
+        )
