@@ -259,3 +259,71 @@ class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = ['id', 'name', 'position']
+
+
+
+class LoanPaymentSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True)
+    amount_paid = serializers.IntegerField(min_value=1)
+    
+    class Meta:
+        model = Loan
+        fields = ['username', 'amount_paid', 'date_loaned']
+        read_only_fields = ['date_loaned']
+
+    def validate(self, data):
+        username = data.get('username')
+        amount_paid = data.get('amount_paid')
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError(f"User with username '{username}' does not exist.")
+        
+        # Check if user has any outstanding loans
+        total_outstanding_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+        
+        if total_outstanding_loans <= 0:
+            raise serializers.ValidationError(f"User '{username}' has no outstanding loans to pay.")
+        
+        if amount_paid > total_outstanding_loans:
+            raise serializers.ValidationError(
+                f"Payment amount ({amount_paid}) cannot exceed outstanding loan balance ({total_outstanding_loans})."
+            )
+        
+        data['user'] = user
+        data['total_outstanding_loans'] = total_outstanding_loans
+        return data
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        amount_paid = validated_data['amount_paid']
+        total_outstanding_loans = validated_data['total_outstanding_loans']
+        
+        with transaction.atomic():
+            # Create a negative loan entry to represent payment
+            loan_payment = Loan.objects.create(
+                person_loaning=user,
+                amount_loaned=-amount_paid  # Negative amount represents payment
+            )
+            
+            # Recalculate totals after payment
+            new_total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+                total=models.Sum('amount_loaned')
+            )['total'] or 0
+            
+            total_savings = Saving.objects.filter(person_saving=user).aggregate(
+                total=models.Sum('amount_saved')
+            )['total'] or 0
+            
+            new_net_saving = total_savings - new_total_loans
+            
+            # Update ALL Saving records for this user with new totals
+            Saving.objects.filter(person_saving=user).update(
+                total_loan=new_total_loans,
+                net_saving=new_net_saving
+            )
+            
+            return loan_payment
