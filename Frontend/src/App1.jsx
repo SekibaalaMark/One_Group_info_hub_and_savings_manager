@@ -18,9 +18,6 @@ import ConfirmEmail from "./StudentPages/ConfirmEmail.jsx";
 import ForgotPassword from "./features/authentication/ForgotPassword.jsx";
 
 import Logout from "./components/Logout";
-import Dashboard from "./components/Dashboard.jsx"; // Import  Logout from "./StudentComponents/Logout";
-import DashboardCdo from "./pages/DashboardCdo.jsx";
-import DashboardHospital from "./pages/DashboardHospital.jsx";
 
 import { Container } from "@mui/material";
 import "./App.css";
@@ -68,8 +65,6 @@ const AppContent = () => {
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/logout" element={<Logout />} />
-        <Route path="/dashboard-cdo" element={<DashboardCdo />} />
-        <Route path="/dashboard-hospital" element={<DashboardHospital />} />
       </Routes>
     </Container>
   );

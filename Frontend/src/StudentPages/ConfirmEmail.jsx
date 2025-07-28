@@ -16,10 +16,10 @@ const ConfirmEmail = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "https://ihealth-vhdl.onrender.com/api/verify-email/",
+        "https://savings-with-records.onrender.com/api/verify-email/",
         {
           email: email,
-          code: code,
+          confirmation_code: code,
         }
       );
       alert("Email verified successfully! You can now login.");

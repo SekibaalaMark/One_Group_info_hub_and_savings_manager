@@ -9,7 +9,6 @@ const Register = () => {
     password: "",
     password2: "",
     role: "",
-    center_number: "",
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -53,15 +52,8 @@ const Register = () => {
     }
 
     // Validate role
-    if (!['CDO_HEALTH', 'Hospital'].includes(formData.role)) {
-      setError("Role must be CDO_HEALTH or Hospital");
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate center_number
-    if (!formData.center_number) {
-      setError("Center number is required");
+    if (!['sports_manager', 'general_user', 'Treasurer'].includes(formData.role)) {
+      setError("Role must be sports_manager, general_user, or Treasurer");
       setIsLoading(false);
       return;
     }
@@ -74,24 +66,21 @@ const Register = () => {
         password: formData.password,
         password2: formData.password2,
         role: formData.role,
-        center_number: formData.center_number,
       };
 
       console.log("Sending registration data:", payload);
 
       const response = await axios.post(
-        "https://ihealth-vhdl.onrender.com/api/register/",
+        "https://savings-with-records.onrender.com/api/register/",
         payload
       );
 
       console.log("Registration API response:", response);
 
       if (response.status >= 200 && response.status < 300) {
-        // Redirect to confirm email page
         alert("Registration successful! Please verify your email with the code sent to your inbox.");
         navigate("/confirm-email");
       } else {
-        // Something unexpected happened
         setError("Registration was not successful. Please try again.");
       }
     } catch (err) {
@@ -229,18 +218,12 @@ const Register = () => {
             required
           >
             <option value="">Select</option>
-            <option value="CDO_HEALTH">CDO_HEALTH</option>
-            <option value="Hospital">Hospital</option>
+            <option value="sports_manager">Sports Manager</option>
+            <option value="general_user">General User</option>
+            <option value="Treasurer">Treasurer</option>
           </select>
 
-          <label>Center Number*</label>
-          <input
-            type="text"
-            name="center_number"
-            value={formData.center_number}
-            onChange={handleChange}
-            required
-          />
+          {/* Remove Center Number field */}
 
           {error && <div className="error-message">{error}</div>}
           

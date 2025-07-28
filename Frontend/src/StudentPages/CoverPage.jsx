@@ -74,7 +74,7 @@ const CoverPage = () => {
             textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
           }}
         >
-          Mobile CDO Health
+          PARLIAMENT SAVINGS GROUP
         </Typography>
 
         <Typography
