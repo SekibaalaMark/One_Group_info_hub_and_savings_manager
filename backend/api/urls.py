@@ -15,4 +15,5 @@ urlpatterns = [
     path('register-players/', PlayerRegistrationView.as_view(), name='player-reg'),
     path('delete-player/<int:pk>/', PlayerDeleteByIdView.as_view()),
     path('loan-payment/',LoanPaymentView.as_view(), name='loan-payment'),
+    path('loan-balance/<str:username>/', UserLoanBalanceView.as_view(), name='user-loan-balance'),
 ]
