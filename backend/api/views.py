@@ -356,3 +356,56 @@ class PlayerDeleteByIdView(DestroyAPIView):
             {"message": f"Player '{player_name}' has been successfully deleted."},
             status=status.HTTP_200_OK
         )
+
+
+class LoanPaymentView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        # Check if user is a Treasurer
+        if request.user.role != "Treasurer":
+            return Response(
+                {"error": "Only Treasurers can process loan payments."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = LoanPaymentSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                loan_payment = serializer.save()
+                
+                # Get updated user totals for response
+                username = request.data.get('username')
+                user = CustomUser.objects.get(username=username)
+                
+                updated_total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+                    total=models.Sum('amount_loaned')
+                )['total'] or 0
+                
+                total_savings = Saving.objects.filter(person_saving=user).aggregate(
+                    total=models.Sum('amount_saved')
+                )['total'] or 0
+                
+                updated_net_saving = total_savings - updated_total_loans
+                
+                return Response({
+                    "message": f"Loan payment of {abs(loan_payment.amount_loaned)} recorded successfully for {username}.",
+                    "payment_details": {
+                        "username": username,
+                        "amount_paid": abs(loan_payment.amount_loaned),
+                        "payment_date": loan_payment.date_loaned,
+                        "updated_totals": {
+                            "total_savings": total_savings,
+                            "remaining_loan_balance": updated_total_loans,
+                            "net_savings": updated_net_saving
+                        }
+                    }
+                }, status=status.HTTP_201_CREATED)
+                
+            except Exception as e:
+                return Response(
+                    {"error": f"An error occurred while processing the payment: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
