@@ -409,3 +409,58 @@ class LoanPaymentView(APIView):
                 )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+class UserLoanBalanceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, username):
+        # Check if user is a Treasurer
+        if request.user.role != "Treasurer":
+            return Response(
+                {"error": "Only Treasurers can view loan balances."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": f"User with username '{username}' does not exist."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Calculate totals
+        total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+        
+        total_savings = Saving.objects.filter(person_saving=user).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+        
+        net_savings = total_savings - total_loans
+        
+        # Get loan history
+        loan_history = Loan.objects.filter(person_loaning=user).order_by('-date_loaned')
+        loan_data = []
+        
+        for loan in loan_history:
+            loan_data.append({
+                "amount": loan.amount_loaned,
+                "date": loan.date_loaned,
+                "type": "Payment" if loan.amount_loaned < 0 else "Loan"
+            })
+        
+        return Response({
+            "username": username,
+            "financial_summary": {
+                "total_savings": total_savings,
+                "outstanding_loan_balance": total_loans,
+                "net_savings": net_savings
+            },
+            "loan_history": loan_data
+        }, status=status.HTTP_200_OK)
+
