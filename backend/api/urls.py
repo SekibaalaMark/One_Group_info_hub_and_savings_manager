@@ -17,5 +17,6 @@ urlpatterns = [
     path('loan-payment/',LoanPaymentView.as_view(), name='loan-payment'),
     path('loan-balance/<str:username>/', UserLoanBalanceView.as_view(), name='user-loan-balance'),
     path('request-password-reset/',RequestPasswordResetView.as_view(),name="forgot-password"),
-    path('reset-password/',ResetPasswordView.as_view(),name='reset-password-entries')
+    path('reset-password/',ResetPasswordView.as_view(),name='reset-password-entries'),
+    path('usernames/', UsernamesListView.as_view(), name='usernames-list'),
 ]
