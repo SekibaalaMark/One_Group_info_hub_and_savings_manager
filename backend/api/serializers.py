@@ -337,3 +337,26 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         return value
 
 
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    confirmation_code = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+    confirm_password = serializers.CharField(min_length=8)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match.")
+
+        try:
+            user = CustomUser.objects.get(email=data['email'], confirmation_code=data['confirmation_code'])
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or confirmation code.")
+
+        return data
+
+    def save(self):
+        user = CustomUser.objects.get(email=self.validated_data['email'])
+        user.set_password(self.validated_data['new_password'])
+        user.confirmation_code = ""  # Clear code after use
+        user.save()
+
