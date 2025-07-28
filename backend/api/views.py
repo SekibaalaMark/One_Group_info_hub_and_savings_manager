@@ -510,3 +510,43 @@ from rest_framework.generics import ListAPIView
 class UsernamesListView(ListAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UsernameSerializer
+
+
+class UserFinancialSummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        # User's totals
+        user_total_savings = Saving.objects.filter(person_saving=user).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+        
+        user_total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+        
+        user_net_savings = user_total_savings - user_total_loans
+        
+        # Group totals
+        user_total_savings = Saving.objects.filter(person_saving=user).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+        
+        user_total_loans = Loan.objects.filter(person_loaning=user).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+        
+        user_net_savings = user_total_savings - user_total_loans
+        
+        data = {
+            'username': user.username,
+            'role': user.role,
+            'personal_totals': {
+                'total_savings': user_total_savings,
+                'total_loans': user_total_loans,
+                'net_savings': user_net_savings
+            },
+            'currency': 'UGX'
+        }
