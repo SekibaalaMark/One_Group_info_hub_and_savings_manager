@@ -360,3 +360,8 @@ class PasswordResetSerializer(serializers.Serializer):
         user.confirmation_code = ""  # Clear code after use
         user.save()
 
+
+class UsernameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['username']
