@@ -19,4 +19,6 @@ urlpatterns = [
     path('request-password-reset/',RequestPasswordResetView.as_view(),name="forgot-password"),
     path('reset-password/',ResetPasswordView.as_view(),name='reset-password-entries'),
     path('usernames/', UsernamesListView.as_view(), name='usernames-list'),
+    path('financial-summary/', UserFinancialSummaryView.as_view(), name='user-financial-summary'),
+
 ]
