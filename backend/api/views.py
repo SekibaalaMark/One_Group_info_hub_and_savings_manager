@@ -504,3 +504,9 @@ class ResetPasswordView(APIView):
             return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+from rest_framework.generics import ListAPIView
+class UsernamesListView(ListAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UsernameSerializer
