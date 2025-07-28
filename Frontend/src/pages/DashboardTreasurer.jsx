@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 const SIDEBAR_OPTIONS = [
   { key: "save", label: "Save Money" },
   { key: "loan", label: "Give Loan" },
+  { key: "payloan", label: "Pay Loan" },
   { key: "summary", label: "Summary Totals" },
   { key: "detailed", label: "Detailed Records" },
   // Add more options here as needed
@@ -25,6 +26,12 @@ const DashboardTreasurer = () => {
   const [loanLoading, setLoanLoading] = useState(false);
   const [loanSuccessMsg, setLoanSuccessMsg] = useState("");
   const [loanErrorMsg, setLoanErrorMsg] = useState("");
+
+  const [payLoanAmount, setPayLoanAmount] = useState("");
+  const [payLoanUser, setPayLoanUser] = useState("");
+  const [payLoanLoading, setPayLoanLoading] = useState(false);
+  const [payLoanSuccessMsg, setPayLoanSuccessMsg] = useState("");
+  const [payLoanErrorMsg, setPayLoanErrorMsg] = useState("");
 
   const [selectedMenu, setSelectedMenu] = useState("save");
   const [summary, setSummary] = useState(null);
@@ -184,6 +191,42 @@ const DashboardTreasurer = () => {
     }
   };
 
+  // Pay Loan handler
+  const handlePayLoanSubmit = async (e) => {
+    e.preventDefault();
+    setPayLoanSuccessMsg("");
+    setPayLoanErrorMsg("");
+    if (!payLoanUser || !payLoanAmount) {
+      setPayLoanErrorMsg("Please select a user and enter an amount.");
+      return;
+    }
+    setPayLoanLoading(true);
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      await axios.post(
+        "https://savings-with-records.onrender.com/api/loan-payment/",
+        {
+          username: payLoanUser,
+          amount_paid: payLoanAmount,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setPayLoanSuccessMsg(`Successfully paid UGX ${payLoanAmount} for ${payLoanUser}.`);
+      setPayLoanAmount("");
+      setPayLoanUser("");
+    } catch (err) {
+      setPayLoanErrorMsg(
+        err.response?.data?.message || "Failed to pay loan. Please try again."
+      );
+    } finally {
+      setPayLoanLoading(false);
+    }
+  };
+
   // Filtered records for table and export
   const filteredDetailedRecords = detailedRecords.filter(user =>
     user.username.toLowerCase().includes(filterUsername.toLowerCase())
@@ -290,6 +333,8 @@ const DashboardTreasurer = () => {
               setErrorMsg("");
               setLoanSuccessMsg("");
               setLoanErrorMsg("");
+              setPayLoanSuccessMsg("");
+              setPayLoanErrorMsg("");
               setSummary(null); // Clear summary when changing menu
               setSummaryError("");
               setDetailedRecords([]); // Clear detailed records when changing menu
@@ -371,6 +416,41 @@ const DashboardTreasurer = () => {
             </form>
             {loanSuccessMsg && <div style={{ color: "green", marginTop: 16 }}>{loanSuccessMsg}</div>}
             {loanErrorMsg && <div style={{ color: "red", marginTop: 16 }}>{loanErrorMsg}</div>}
+          </>
+        )}
+        {selectedMenu === "payloan" && (
+          <>
+            <h2>Pay Loan</h2>
+            <form onSubmit={handlePayLoanSubmit}>
+              <label style={{ display: "block", marginBottom: 8 }}>Select User:</label>
+              <select
+                value={payLoanUser}
+                onChange={e => setPayLoanUser(e.target.value)}
+                style={{ width: "100%", padding: 8, marginBottom: 16 }}
+                required
+              >
+                <option value="">-- Select Username --</option>
+                {usernames.map(u => (
+                  <option key={u.username} value={u.username}>{u.username}</option>
+                ))}
+              </select>
+
+              <label style={{ display: "block", marginBottom: 8 }}>Amount to Pay (UGX):</label>
+              <input
+                type="number"
+                min="1"
+                value={payLoanAmount}
+                onChange={e => setPayLoanAmount(e.target.value)}
+                style={{ width: "100%", padding: 8, marginBottom: 16 }}
+                required
+              />
+
+              <button type="submit" disabled={payLoanLoading} style={{ width: "100%", padding: 10 }}>
+                {payLoanLoading ? "Processing..." : "Pay Loan"}
+              </button>
+            </form>
+            {payLoanSuccessMsg && <div style={{ color: "green", marginTop: 16 }}>{payLoanSuccessMsg}</div>}
+            {payLoanErrorMsg && <div style={{ color: "red", marginTop: 16 }}>{payLoanErrorMsg}</div>}
           </>
         )}
         {selectedMenu === "summary" && (
