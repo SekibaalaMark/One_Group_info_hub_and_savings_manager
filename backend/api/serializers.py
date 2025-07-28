@@ -327,3 +327,13 @@ class LoanPaymentSerializer(serializers.ModelSerializer):
             )
             
             return loan_payment
+        
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+
+
