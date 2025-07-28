@@ -75,15 +75,15 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "https://ihealth-vhdl.onrender.com/api/login/",
+        "https://savings-with-records.onrender.com/api/login/",
         { username, password }
       );
 
-      const data = response.data;
-
-      const token = data.tokens?.access || data.token || data.access;
-      const refresh = data.tokens?.refresh || data.refresh;
-      let userRole = data.data?.user?.role || data.data?.role || data.user?.role || data.role;
+      const data = response.data || response;
+      const token = data.access;
+      const refresh = data.refresh;
+      const userObj = data.user;
+      const userRole = userObj?.role;
 
       if (!token) {
         setErrorMessage("Unable to complete login. Please try again.");
@@ -95,8 +95,9 @@ const Login = () => {
         {
           token,
           refresh,
-          username,
+          username: userObj?.username || username,
           user_role: userRole,
+          user: userObj,
         },
         userRole
       );

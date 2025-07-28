@@ -24,21 +24,22 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("accessToken", userData.token);
-
-      // Store username for fallback display
+      if (userData.refresh) {
+        localStorage.setItem("refreshToken", userData.refresh);
+      }
       if (userData.username) {
         localStorage.setItem("username", userData.username);
       }
-
       // Determine and store user role
-      const userRole = userData.user_role || role || "student";
+      const userRole = userData.user_role || role || "general_user";
       localStorage.setItem("userRole", userRole);
-
-      // Navigate based on role
-      if (userRole === "CDO_HEALTH") {
-        navigate("/dashboard-cdo");
-      } else if (userRole === "Hospital") {
-        navigate("/dashboard-hospital");
+      // Navigate based on new roles
+      if (userRole === "sports_manager") {
+        navigate("/dashboard-sports-manager");
+      } else if (userRole === "general_user") {
+        navigate("/dashboard-general-user");
+      } else if (userRole === "Treasurer") {
+        navigate("/dashboard-treasurer");
       } else {
         navigate("/dashboard");
       }
