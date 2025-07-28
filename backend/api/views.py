@@ -9,7 +9,9 @@ from .models import *
 from rest_framework_simplejwt.tokens import RefreshToken  # Optional, for JWT auth
 
 from rest_framework.permissions import AllowAny
-
+from datetime import date
+import random
+from django.utils import timezone
 
 
 
@@ -464,3 +466,30 @@ class UserLoanBalanceView(APIView):
             "loan_history": loan_data
         }, status=status.HTTP_200_OK)
 
+
+
+class RequestPasswordResetView(APIView):
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = CustomUser.objects.get(email=email)
+
+            # Generate reset code
+            reset_code = str(random.randint(100000, 999999))
+            user.confirmation_code = reset_code  # reuse this field
+            user.reset_code_sent_at = timezone.now()
+            user.save()
+
+            # Send email
+            send_mail(
+                subject='Password Reset Code',
+                message=f'Your password reset code is: {reset_code}',
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+
+            return Response({"message": "Reset code sent to email."}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
