@@ -16,4 +16,5 @@ urlpatterns = [
     path('delete-player/<int:pk>/', PlayerDeleteByIdView.as_view()),
     path('loan-payment/',LoanPaymentView.as_view(), name='loan-payment'),
     path('loan-balance/<str:username>/', UserLoanBalanceView.as_view(), name='user-loan-balance'),
+    path('request-password-reset/',RequestPasswordResetView.as_view(),name="forgot-password")
 ]
