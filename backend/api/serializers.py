@@ -365,3 +365,28 @@ class UsernameSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['username']
+
+
+class UserFinancialDetailsSerializer(serializers.ModelSerializer):
+    total_savings = serializers.SerializerMethodField()
+    total_loans = serializers.SerializerMethodField()
+    net_savings = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'role', 'total_savings', 'total_loans', 'net_savings']
+    
+    def get_total_savings(self, obj):
+        return Saving.objects.filter(person_saving=obj).aggregate(
+            total=models.Sum('amount_saved')
+        )['total'] or 0
+    
+    def get_total_loans(self, obj):
+        return Loan.objects.filter(person_loaning=obj).aggregate(
+            total=models.Sum('amount_loaned')
+        )['total'] or 0
+    
+    def get_net_savings(self, obj):
+        total_savings = self.get_total_savings(obj)
+        total_loans = self.get_total_loans(obj)
+        return total_savings - total_loans
