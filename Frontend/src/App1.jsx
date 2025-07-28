@@ -18,6 +18,7 @@ import ConfirmEmail from "./StudentPages/ConfirmEmail.jsx";
 import ForgotPassword from "./features/authentication/ForgotPassword.jsx";
 
 import Logout from "./components/Logout";
+import DashboardTreasurer from "./pages/DashboardTreasurer.jsx";
 
 import { Container } from "@mui/material";
 import "./App.css";
@@ -42,6 +43,8 @@ const ProtectedLayout = () => {
         return <Navigate to="/lecturers" replace />;
       case "academicregistrar":
         return <Navigate to="/AcademicRegistrar" replace />;
+      case "treasurer":
+        return <Navigate to="/dashboard-treasurer" replace />;
       default:
         return <Navigate to="/" replace />;
     }
@@ -65,6 +68,7 @@ const AppContent = () => {
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/dashboard-treasurer" element={<DashboardTreasurer />} />
       </Routes>
     </Container>
   );
