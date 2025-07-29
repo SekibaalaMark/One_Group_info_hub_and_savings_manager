@@ -25,6 +25,15 @@ const Login = () => {
     !!localStorage.getItem("rememberedUsername")
   );
   const [showAnimation, setShowAnimation] = useState(true);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotCode, setForgotCode] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
 
   // Add animation timeout effect
   useEffect(() => {
@@ -58,6 +67,53 @@ const Login = () => {
         return "We're experiencing technical difficulties. Please try again later.";
       default:
         return "Unable to log in at the moment. Please try again later.";
+    }
+  };
+
+  // Forgot Password Handlers
+  const handleForgotRequest = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSuccess("");
+    setForgotLoading(true);
+    try {
+      await axios.post("https://savings-with-records.onrender.com/api/request-password-reset/", { email: forgotEmail });
+      setForgotSuccess("Confirmation code sent to your email. Check your inbox.");
+      setForgotStep(2);
+    } catch (err) {
+      setForgotError(err.response?.data?.message || "Failed to request password reset.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotReset = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSuccess("");
+    setForgotLoading(true);
+    try {
+      await axios.post("https://savings-with-records.onrender.com/api/reset-password/", {
+        confirmation_code: forgotCode,
+        new_password: forgotNewPassword,
+        confirm_password: forgotConfirmPassword,
+        email: forgotEmail,
+      });
+      setForgotSuccess("Password reset successful! You can now log in.");
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setForgotStep(1);
+        setForgotEmail("");
+        setForgotCode("");
+        setForgotNewPassword("");
+        setForgotConfirmPassword("");
+        setForgotError("");
+        setForgotSuccess("");
+      }, 2000);
+    } catch (err) {
+      setForgotError(err.response?.data?.message || "Failed to reset password.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -172,9 +228,13 @@ const Login = () => {
                 <span className="checkmark"></span>
                 <span className="checkbox-label">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="forgot-link">
+              <span
+                className="forgot-link"
+                style={{ cursor: "pointer", color: "#1976d2", textDecoration: "underline" }}
+                onClick={() => setShowForgotModal(true)}
+              >
                 Forgot Password?
-              </Link>
+              </span>
             </div>
 
             {errorMessage && (
@@ -198,6 +258,84 @@ const Login = () => {
           </form>
         </div>
       </div>
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.3)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="modal-content" style={{ background: "#fff", padding: 32, borderRadius: 8, minWidth: 320, maxWidth: 400, boxShadow: "0 2px 16px rgba(0,0,0,0.15)" }}>
+            <button
+              style={{ position: "absolute", top: 16, right: 24, background: "none", border: "none", fontSize: 22, cursor: "pointer" }}
+              onClick={() => {
+                setShowForgotModal(false);
+                setForgotStep(1);
+                setForgotEmail("");
+                setForgotCode("");
+                setForgotNewPassword("");
+                setForgotConfirmPassword("");
+                setForgotError("");
+                setForgotSuccess("");
+              }}
+              title="Close"
+            >
+              ×
+            </button>
+            <h2 style={{ marginTop: 0 }}>Forgot Password</h2>
+            {forgotStep === 1 && (
+              <form onSubmit={handleForgotRequest}>
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: 8, marginBottom: 16 }}
+                  placeholder="Enter your email"
+                />
+                {forgotError && <div style={{ color: "red", marginBottom: 8 }}>{forgotError}</div>}
+                {forgotSuccess && <div style={{ color: "green", marginBottom: 8 }}>{forgotSuccess}</div>}
+                <button type="submit" disabled={forgotLoading} style={{ width: "100%", padding: 10 }}>
+                  {forgotLoading ? "Requesting..." : "Request Reset"}
+                </button>
+              </form>
+            )}
+            {forgotStep === 2 && (
+              <form onSubmit={handleForgotReset}>
+                <label>Confirmation Code</label>
+                <input
+                  type="text"
+                  value={forgotCode}
+                  onChange={e => setForgotCode(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: 8, marginBottom: 12 }}
+                  placeholder="Enter confirmation code"
+                />
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={forgotNewPassword}
+                  onChange={e => setForgotNewPassword(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: 8, marginBottom: 12 }}
+                  placeholder="Enter new password"
+                />
+                <label>Confirm Password</label>
+                <input
+                  type="password"
+                  value={forgotConfirmPassword}
+                  onChange={e => setForgotConfirmPassword(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: 8, marginBottom: 12 }}
+                  placeholder="Confirm new password"
+                />
+                {forgotError && <div style={{ color: "red", marginBottom: 8 }}>{forgotError}</div>}
+                {forgotSuccess && <div style={{ color: "green", marginBottom: 8 }}>{forgotSuccess}</div>}
+                <button type="submit" disabled={forgotLoading} style={{ width: "100%", padding: 10 }}>
+                  {forgotLoading ? "Resetting..." : "Reset Password"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };

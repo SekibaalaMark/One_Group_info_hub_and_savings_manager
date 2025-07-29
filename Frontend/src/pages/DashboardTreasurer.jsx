@@ -12,6 +12,7 @@ const SIDEBAR_OPTIONS = [
   { key: "myrecords", label: "My Records" },
   { key: "summary", label: "Summary Totals" },
   { key: "detailed", label: "Detailed Records" },
+  { key: "parliamentfc", label: "Parliament FC" },
   // Add more options here as needed
 ];
 
@@ -49,6 +50,10 @@ const DashboardTreasurer = () => {
   const [myRecords, setMyRecords] = useState(null);
   const [myRecordsLoading, setMyRecordsLoading] = useState(false);
   const [myRecordsError, setMyRecordsError] = useState("");
+
+  const [playersData, setPlayersData] = useState(null);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [playersError, setPlayersError] = useState("");
 
   // Fetch all usernames on mount
   useEffect(() => {
@@ -149,6 +154,33 @@ const DashboardTreasurer = () => {
         }
       };
       fetchMyRecords();
+    }
+  }, [selectedMenu]);
+
+  // Fetch Parliament FC players when 'parliamentfc' menu is selected
+  useEffect(() => {
+    if (selectedMenu === "parliamentfc") {
+      const fetchPlayers = async () => {
+        setPlayersLoading(true);
+        setPlayersError("");
+        try {
+          const accessToken = localStorage.getItem("accessToken");
+          const res = await axios.get(
+            "https://savings-with-records.onrender.com/api/players/all/",
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+          setPlayersData(res.data);
+        } catch (err) {
+          setPlayersError("Failed to load Parliament FC players.");
+        } finally {
+          setPlayersLoading(false);
+        }
+      };
+      fetchPlayers();
     }
   }, [selectedMenu]);
 
@@ -375,6 +407,8 @@ const DashboardTreasurer = () => {
               setFilterUsername(""); // Clear filter when changing menu
               setMyRecords(null); // Clear my records when changing menu
               setMyRecordsError("");
+              setPlayersData(null); // Clear players data when changing menu
+              setPlayersError("");
             }}
           >
             {opt.label}
@@ -594,6 +628,45 @@ const DashboardTreasurer = () => {
             )}
             {!detailedLoading && !detailedError && filteredDetailedRecords.length === 0 && (
               <div>No records found.</div>
+            )}
+          </>
+        )}
+        {selectedMenu === "parliamentfc" && (
+          <>
+            <h2>Parliament FC</h2>
+            {playersLoading && <div>Loading players...</div>}
+            {playersError && <div style={{ color: "red" }}>{playersError}</div>}
+            {playersData && !playersLoading && !playersError && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ marginBottom: 12, fontWeight: 600 }}>
+                  Total Players: {playersData.total_players}
+                </div>
+                {Object.entries(playersData.position_breakdown).map(([position, count]) => (
+                  <div key={position} style={{ marginBottom: 18 }}>
+                    <div style={{ fontWeight: 600, fontSize: 17, color: '#1976d2', marginBottom: 4 }}>
+                      {position} ({count})
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {playersData.players
+                        .filter(p => {
+                          // Normalize position names for grouping
+                          const pos = (p.position || "").replace(/_/g, " ").replace(/Ass/i, "Assistant").replace(/GK/i, "Goal Keeper").replace(/Midfielder/i, "Midfield").replace(/Team doctor/i, "Team Doctor").replace(/Coach/i, "Coach").replace(/Manager/i, "Manager").trim();
+                          return (
+                            pos.toLowerCase() === position.toLowerCase() ||
+                            (position === "Goal Keeper" && ["GK", "Goal Keeper"].includes(p.position)) ||
+                            (position === "Assistant Coach" && ["Ass_Coach", "Assistant Coach"].includes(p.position)) ||
+                            (position === "Team Doctor" && ["Team_doctor", "Team Doctor"].includes(p.position))
+                          );
+                        })
+                        .map(player => (
+                          <li key={player.id} style={{ marginBottom: 2 }}>
+                            {player.name}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             )}
           </>
         )}

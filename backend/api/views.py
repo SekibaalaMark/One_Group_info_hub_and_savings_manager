@@ -469,6 +469,7 @@ class UserLoanBalanceView(APIView):
 
 
 class RequestPasswordResetView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -497,6 +498,7 @@ class RequestPasswordResetView(APIView):
 
 
 class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
