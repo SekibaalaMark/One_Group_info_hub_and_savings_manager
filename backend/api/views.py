@@ -552,3 +552,34 @@ class UserFinancialSummaryView(APIView):
         }
         
         return Response(data, status=status.HTTP_200_OK)
+
+
+
+class AllPlayersView(APIView):
+    """
+    API view to retrieve all players with complete details
+    GET /api/players/all/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        players = Player.objects.all().order_by('name')
+        serializer = PlayerSerializer(players, many=True)
+        
+        # Additional summary information
+        total_count = players.count()
+        
+        # Count by position
+        position_breakdown = {}
+        for position_code, position_name in Player.POSITION:
+            count = players.filter(position=position_code).count()
+            if count > 0:  # Only include positions that have players
+                position_breakdown[position_name] = count
+        
+        response_data = {
+            "total_players": total_count,
+            "position_breakdown": position_breakdown,
+            "players": serializer.data
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
