@@ -19,6 +19,7 @@ import ForgotPassword from "./features/authentication/ForgotPassword.jsx";
 
 import Logout from "./components/Logout";
 import DashboardTreasurer from "./pages/DashboardTreasurer.jsx";
+import DashboardSportsManager from "./pages/DashboardSportsManager.jsx";
 
 import { Container } from "@mui/material";
 import "./App.css";
@@ -45,6 +46,8 @@ const ProtectedLayout = () => {
         return <Navigate to="/AcademicRegistrar" replace />;
       case "treasurer":
         return <Navigate to="/dashboard-treasurer" replace />;
+      case "sports_manager":
+        return <Navigate to="/dashboard-sports-manager" replace />;
       default:
         return <Navigate to="/" replace />;
     }
@@ -69,6 +72,7 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/dashboard-treasurer" element={<DashboardTreasurer />} />
+        <Route path="/dashboard-sports-manager" element={<DashboardSportsManager />} />
       </Routes>
     </Container>
   );

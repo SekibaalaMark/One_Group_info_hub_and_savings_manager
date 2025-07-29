@@ -4,7 +4,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     ROLES = [
-        ("sports_manger", "Sports Manager"),
+        ("sports_manager", "Sports Manager"),
         ("general_user", "General"),
         ("Treasurer", "Treasurer")
     ]

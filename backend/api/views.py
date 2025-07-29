@@ -324,7 +324,7 @@ class PlayerRegistrationView(APIView):
         serializer = RegisterPlayerSerializer(data=request.data)
         if serializer.is_valid():
             player = serializer.save()
-            if request.user.role !="sports_manger":
+            if request.user.role !="sports_manager":
                 return Response({"message":"Only the football manager adds players"},
                                 status=status.HTTP_403_FORBIDDEN)
 
