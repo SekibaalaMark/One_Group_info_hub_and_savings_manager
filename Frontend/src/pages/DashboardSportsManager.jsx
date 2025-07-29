@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 const SIDEBAR_OPTIONS = [
   { key: "home", label: "Home" },
+  { key: "add", label: "Add Team Member" },
   // Add more options here as you build features
 ];
 
@@ -58,6 +59,52 @@ const DashboardSportsManager = () => {
     transition: "background 0.2s, color 0.2s",
   });
 
+  const [addName, setAddName] = useState("");
+  const [addPosition, setAddPosition] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addSuccess, setAddSuccess] = useState("");
+  const [addError, setAddError] = useState("");
+  const positionChoices = [
+    "Forward",
+    "Defender",
+    "Midfielder",
+    "Coach",
+    "Ass_Coach",
+    "Manager",
+    "Team_doctor",
+    "GK",
+  ];
+
+  // Add Team Member handler
+  const handleAddMember = async (e) => {
+    e.preventDefault();
+    setAddSuccess("");
+    setAddError("");
+    if (!addName || !addPosition) {
+      setAddError("Please enter a name and select a position.");
+      return;
+    }
+    setAddLoading(true);
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      await fetch("https://savings-with-records.onrender.com/api/register-players/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ name: addName, position: addPosition }),
+      });
+      setAddSuccess(`Team member '${addName}' added as ${addPosition}.`);
+      setAddName("");
+      setAddPosition("");
+    } catch (err) {
+      setAddError("Failed to add team member. Please try again.");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   return (
     <div style={responsiveContainerStyle}>
       {/* Sidebar */}
@@ -79,6 +126,39 @@ const DashboardSportsManager = () => {
           <>
             <h2>Welcome, Sports Manager!</h2>
             <p>This is your dashboard. Select a feature from the sidebar to get started.</p>
+          </>
+        )}
+        {selectedMenu === "add" && (
+          <>
+            <h2>Add Team Member</h2>
+            <form onSubmit={handleAddMember}>
+              <label>Name</label>
+              <input
+                type="text"
+                value={addName}
+                onChange={e => setAddName(e.target.value)}
+                required
+                style={{ width: "100%", padding: 8, marginBottom: 16 }}
+                placeholder="Enter member name"
+              />
+              <label>Position</label>
+              <select
+                value={addPosition}
+                onChange={e => setAddPosition(e.target.value)}
+                required
+                style={{ width: "100%", padding: 8, marginBottom: 16 }}
+              >
+                <option value="">-- Select Position --</option>
+                {positionChoices.map(pos => (
+                  <option key={pos} value={pos}>{pos.replace(/_/g, " ")}</option>
+                ))}
+              </select>
+              {addError && <div style={{ color: "red", marginBottom: 8 }}>{addError}</div>}
+              {addSuccess && <div style={{ color: "green", marginBottom: 8 }}>{addSuccess}</div>}
+              <button type="submit" disabled={addLoading} style={{ width: "100%", padding: 10 }}>
+                {addLoading ? "Adding..." : "Add Member"}
+              </button>
+            </form>
           </>
         )}
       </div>
