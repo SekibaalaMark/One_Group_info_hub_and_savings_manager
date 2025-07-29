@@ -8,6 +8,7 @@ const SIDEBAR_OPTIONS = [
   { key: "save", label: "Save Money" },
   { key: "loan", label: "Give Loan" },
   { key: "payloan", label: "Pay Loan" },
+  { key: "myrecords", label: "My Records" },
   { key: "summary", label: "Summary Totals" },
   { key: "detailed", label: "Detailed Records" },
   // Add more options here as needed
@@ -43,6 +44,9 @@ const DashboardTreasurer = () => {
   const [detailedError, setDetailedError] = useState("");
 
   const [filterUsername, setFilterUsername] = useState("");
+  const [myRecords, setMyRecords] = useState(null);
+  const [myRecordsLoading, setMyRecordsLoading] = useState(false);
+  const [myRecordsError, setMyRecordsError] = useState("");
 
   // Fetch all usernames on mount
   useEffect(() => {
@@ -116,6 +120,33 @@ const DashboardTreasurer = () => {
         }
       };
       fetchDetailed();
+    }
+  }, [selectedMenu]);
+
+  // Fetch my records when 'myrecords' menu is selected
+  useEffect(() => {
+    if (selectedMenu === "myrecords") {
+      const fetchMyRecords = async () => {
+        setMyRecordsLoading(true);
+        setMyRecordsError("");
+        try {
+          const accessToken = localStorage.getItem("accessToken");
+          const res = await axios.get(
+            "https://savings-with-records.onrender.com/api/financial-summary/",
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+          setMyRecords(res.data);
+        } catch (err) {
+          setMyRecordsError("Failed to load your financial summary.");
+        } finally {
+          setMyRecordsLoading(false);
+        }
+      };
+      fetchMyRecords();
     }
   }, [selectedMenu]);
 
@@ -340,6 +371,8 @@ const DashboardTreasurer = () => {
               setDetailedRecords([]); // Clear detailed records when changing menu
               setDetailedError("");
               setFilterUsername(""); // Clear filter when changing menu
+              setMyRecords(null); // Clear my records when changing menu
+              setMyRecordsError("");
             }}
           >
             {opt.label}
@@ -451,6 +484,30 @@ const DashboardTreasurer = () => {
             </form>
             {payLoanSuccessMsg && <div style={{ color: "green", marginTop: 16 }}>{payLoanSuccessMsg}</div>}
             {payLoanErrorMsg && <div style={{ color: "red", marginTop: 16 }}>{payLoanErrorMsg}</div>}
+          </>
+        )}
+        {selectedMenu === "myrecords" && (
+          <>
+            <h2>My Records</h2>
+            {myRecordsLoading && <div>Loading your records...</div>}
+            {myRecordsError && <div style={{ color: "red" }}>{myRecordsError}</div>}
+            {myRecords && !myRecordsLoading && !myRecordsError && (
+              <div style={{
+                background: "#f8f9fa",
+                border: "1px solid #e0e0e0",
+                borderRadius: 8,
+                padding: 20,
+                marginTop: 16,
+                fontSize: 18,
+                lineHeight: 2,
+              }}>
+                <div><strong>Username:</strong> {myRecords.username}</div>
+                <div><strong>Role:</strong> {myRecords.role}</div>
+                <div><strong>Total Savings:</strong> {myRecords.personal_totals.total_savings} {myRecords.currency}</div>
+                <div><strong>Total Loans:</strong> {myRecords.personal_totals.total_loans} {myRecords.currency}</div>
+                <div><strong>Net Savings:</strong> {myRecords.personal_totals.net_savings} {myRecords.currency}</div>
+              </div>
+            )}
           </>
         )}
         {selectedMenu === "summary" && (
