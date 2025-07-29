@@ -20,5 +20,6 @@ urlpatterns = [
     path('reset-password/',ResetPasswordView.as_view(),name='reset-password-entries'),
     path('usernames/', UsernamesListView.as_view(), name='usernames-list'),
     path('financial-summary/', UserFinancialSummaryView.as_view(), name='user-financial-summary'),
+    path('players/all/', AllPlayersView.as_view(), name='all-players'),
 
 ]
