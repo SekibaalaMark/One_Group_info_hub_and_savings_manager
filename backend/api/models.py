@@ -46,7 +46,8 @@ class Player(models.Model):
                 ('Midfielder','Midfield'),
                 ('Coach','Coach'),
                 ('Ass_Coach','Assistant Coach'),('Manager','Manager'),
-                ('Team_doctor','Team Doctor')]
+                ('Team_doctor','Team Doctor'),
+                ('GK',"Goal Keeper")]
     name = models.CharField(max_length=150,unique=True)
     position = models.CharField(max_length=20,choices=POSITION)
 
