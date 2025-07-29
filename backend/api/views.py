@@ -550,3 +550,5 @@ class UserFinancialSummaryView(APIView):
             },
             'currency': 'UGX'
         }
+        
+        return Response(data, status=status.HTTP_200_OK)
