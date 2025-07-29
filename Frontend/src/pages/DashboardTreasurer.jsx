@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { AuthContext } from "../context/authContext";
 
 const SIDEBAR_OPTIONS = [
   { key: "save", label: "Save Money" },
@@ -15,6 +16,7 @@ const SIDEBAR_OPTIONS = [
 ];
 
 const DashboardTreasurer = () => {
+  const { logout } = useContext(AuthContext);
   const [usernames, setUsernames] = useState([]);
   const [selectedUsername, setSelectedUsername] = useState("");
   const [amount, setAmount] = useState("");
@@ -378,6 +380,18 @@ const DashboardTreasurer = () => {
             {opt.label}
           </div>
         ))}
+        <div
+          style={{
+            ...menuItemStyle(false),
+            marginTop: 20,
+            background: "#dc3545",
+            color: "#fff",
+            textAlign: "center",
+          }}
+          onClick={logout}
+        >
+          Logout
+        </div>
       </div>
       {/* Main Content */}
       <div style={responsiveMainStyle}>
