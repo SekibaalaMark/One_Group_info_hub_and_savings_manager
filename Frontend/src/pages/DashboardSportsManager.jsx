@@ -3,6 +3,8 @@ import React, { useState } from "react";
 const SIDEBAR_OPTIONS = [
   { key: "home", label: "Home" },
   { key: "add", label: "Add Team Member" },
+  { key: "delete", label: "Delete Player" },
+  { key: "myrecords", label: "My Records" },
   // Add more options here as you build features
 ];
 
@@ -105,6 +107,87 @@ const DashboardSportsManager = () => {
     }
   };
 
+  // Delete Player state
+  const [deletePlayers, setDeletePlayers] = useState([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
+
+  // Fetch players for delete functionality
+  React.useEffect(() => {
+    if (selectedMenu === "delete") {
+      const fetchPlayers = async () => {
+        setDeleteLoading(true);
+        setDeleteError("");
+        try {
+          const accessToken = localStorage.getItem("accessToken");
+          const res = await fetch("https://savings-with-records.onrender.com/api/players/all/", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const data = await res.json();
+          setDeletePlayers(data.players || []);
+        } catch (err) {
+          setDeleteError("Failed to load players.");
+        } finally {
+          setDeleteLoading(false);
+        }
+      };
+      fetchPlayers();
+    }
+  }, [selectedMenu, deleteSuccess]);
+
+  // Delete player handler
+  const handleDeletePlayer = async (id) => {
+    setDeleteError("");
+    setDeleteSuccess("");
+    setDeleteLoading(true);
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const res = await fetch(`https://savings-with-records.onrender.com/api/delete-player/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDeleteSuccess(data.message || "Player deleted successfully.");
+        setDeletePlayers(players => players.filter(p => p.id !== id));
+      } else {
+        setDeleteError(data.message || "Failed to delete player.");
+      }
+    } catch (err) {
+      setDeleteError("Failed to delete player. Please try again.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const [myRecords, setMyRecords] = useState(null);
+  const [myRecordsLoading, setMyRecordsLoading] = useState(false);
+  const [myRecordsError, setMyRecordsError] = useState("");
+
+  // Fetch my records when 'myrecords' menu is selected
+  React.useEffect(() => {
+    if (selectedMenu === "myrecords") {
+      const fetchMyRecords = async () => {
+        setMyRecordsLoading(true);
+        setMyRecordsError("");
+        try {
+          const accessToken = localStorage.getItem("accessToken");
+          const res = await fetch("https://savings-with-records.onrender.com/api/financial-summary/", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const data = await res.json();
+          setMyRecords(data);
+        } catch (err) {
+          setMyRecordsError("Failed to load your financial summary.");
+        } finally {
+          setMyRecordsLoading(false);
+        }
+      };
+      fetchMyRecords();
+    }
+  }, [selectedMenu]);
+
   return (
     <div style={responsiveContainerStyle}>
       {/* Sidebar */}
@@ -159,6 +242,59 @@ const DashboardSportsManager = () => {
                 {addLoading ? "Adding..." : "Add Member"}
               </button>
             </form>
+          </>
+        )}
+        {selectedMenu === "delete" && (
+          <>
+            <h2>Delete Player</h2>
+            {deleteLoading && <div>Loading players...</div>}
+            {deleteError && <div style={{ color: "red" }}>{deleteError}</div>}
+            {deleteSuccess && <div style={{ color: "green" }}>{deleteSuccess}</div>}
+            {!deleteLoading && deletePlayers.length > 0 && (
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {deletePlayers.map(player => (
+                  <li key={player.id} style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #eee", paddingBottom: 6 }}>
+                    <span>
+                      <strong>{player.name}</strong> <span style={{ color: "#888" }}>({player.position.replace(/_/g, " ")})</span>
+                    </span>
+                    <button
+                      onClick={() => handleDeletePlayer(player.id)}
+                      disabled={deleteLoading}
+                      style={{ background: "#dc3545", color: "#fff", border: "none", borderRadius: 4, padding: "6px 14px", cursor: "pointer" }}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!deleteLoading && deletePlayers.length === 0 && !deleteError && (
+              <div>No players found.</div>
+            )}
+          </>
+        )}
+        {selectedMenu === "myrecords" && (
+          <>
+            <h2>My Records</h2>
+            {myRecordsLoading && <div>Loading your records...</div>}
+            {myRecordsError && <div style={{ color: "red" }}>{myRecordsError}</div>}
+            {myRecords && !myRecordsLoading && !myRecordsError && (
+              <div style={{
+                background: "#f8f9fa",
+                border: "1px solid #e0e0e0",
+                borderRadius: 8,
+                padding: 20,
+                marginTop: 16,
+                fontSize: 18,
+                lineHeight: 2,
+              }}>
+                <div><strong>Username:</strong> {myRecords.username}</div>
+                <div><strong>Role:</strong> {myRecords.role}</div>
+                <div><strong>Total Savings:</strong> {myRecords.personal_totals.total_savings} {myRecords.currency}</div>
+                <div><strong>Total Loans:</strong> {myRecords.personal_totals.total_loans} {myRecords.currency}</div>
+                <div><strong>Net Savings:</strong> {myRecords.personal_totals.net_savings} {myRecords.currency}</div>
+              </div>
+            )}
           </>
         )}
       </div>
