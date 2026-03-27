@@ -236,3 +236,82 @@ class SavingSerializerTest(TestCase):
         serializer = SavingSerializer(data=data)
         
         # This will trigger the try/except block in your create() method
+        
+        
+        
+        
+        
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from .models import Saving, Loan
+from .serializers import LoanSerializer
+
+User = get_user_model()
+
+class LoanSerializerTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='borrower', 
+            email='borrower@gmail.com', 
+            password='password123'
+        )
+        
+        # Create an initial saving record so we can see it get updated
+        Saving.objects.create(
+            person_saving=self.user,
+            amount_saved=1000,
+            total_savings=1000,
+            total_loan=0,
+            net_saving=1000
+        )
+
+    def test_loan_creation_updates_savings_records(self):
+        """Verify that taking a loan updates the total_loan and net_saving in Saving model."""
+        data = {
+            "username": "borrower",
+            "amount_loaned": 400
+        }
+        
+        serializer = LoanSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        loan = serializer.save()
+
+        # Check the Loan was created
+        self.assertEqual(loan.amount_loaned, 400)
+
+        # Check that the existing Saving record was updated
+        saved_record = Saving.objects.get(person_saving=self.user)
+        self.assertEqual(saved_record.total_loan, 400)
+        self.assertEqual(saved_record.net_saving, 600) # 1000 - 400
+
+    def test_multiple_loans_aggregation(self):
+        """Ensure that taking a second loan aggregates correctly with the first."""
+        # Create first loan manually
+        Loan.objects.create(person_loaning=self.user, amount_loaned=100)
+        
+        # Create second loan via serializer
+        data = {"username": "borrower", "amount_loaned": 200}
+        serializer = LoanSerializer(data=data)
+        serializer.is_valid()
+        serializer.save()
+
+        # Check savings update
+        saved_record = Saving.objects.get(person_saving=self.user)
+        self.assertEqual(saved_record.total_loan, 300) # 100 + 200
+        self.assertEqual(saved_record.net_saving, 700) # 1000 - 300
+
+    def test_loan_without_existing_savings(self):
+        """Ensure the logic doesn't crash if a user has loans but 0 savings."""
+        new_user = User.objects.create_user(username='nosavings', email='no@gmail.com', password='p')
+        
+        data = {"username": "nosavings", "amount_loaned": 500}
+        serializer = LoanSerializer(data=data)
+        serializer.is_valid()
+        
+        # This shouldn't crash, it should just update 0 saving rows
+        loan = serializer.save()
+        self.assertEqual(Loan.objects.filter(person_loaning=new_user).count(), 1)
+        self.assertEqual(Saving.objects.filter(person_saving=new_user).count(), 0)
