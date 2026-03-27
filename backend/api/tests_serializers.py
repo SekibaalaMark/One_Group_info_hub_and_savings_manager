@@ -61,3 +61,33 @@ class UserRegistrationSerializerTest(TestCase):
         serializer = UserRegistrationSerializer(data=self.base_data)
         self.assertFalse(serializer.is_valid())
         self.assertEqual(serializer.errors["non_field_errors"][0], "Username already exists")
+        
+        
+        
+        
+
+
+from django.test import TestCase
+from users.serializers import PasswordResetRequestSerializer
+
+class PasswordResetRequestSerializerTest(TestCase):
+
+    def test_serializer_with_valid_email(self):
+        """Test that a standard valid email passes validation."""
+        data = {"email": "user@gmail.com"}
+        serializer = PasswordResetRequestSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data['email'], "user@gmail.com")
+
+    def test_serializer_with_invalid_email(self):
+        """Test that an improperly formatted email fails."""
+        data = {"email": "not-an-email"}
+        serializer = PasswordResetRequestSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('email', serializer.errors)
+
+    def test_serializer_empty_email(self):
+        """Test that a blank email field is not allowed."""
+        data = {"email": ""}
+        serializer = PasswordResetRequestSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
