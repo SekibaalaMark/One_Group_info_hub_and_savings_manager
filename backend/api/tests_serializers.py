@@ -163,3 +163,76 @@ class PasswordResetConfirmSerializerTest(TestCase):
         serializer = PasswordResetConfirmSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
         self.assertIn("new_password", serializer.errors)
+        
+        
+        
+
+
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from .models import Saving, Loan
+from .serializers import SavingSerializer
+
+User = get_user_model()
+
+class SavingSerializerTest(TestCase):
+
+    def setUp(self):
+        # Create a user
+        self.user = User.objects.create_user(
+            username='financer', 
+            email='finance@gmail.com', 
+            password='password123'
+        )
+        
+        # Pre-populate with an existing loan to test the math
+        Loan.objects.create(person_loaning=self.user, amount_loaned=200)
+
+    def test_saving_creation_calculates_totals_correctly(self):
+        """Verify that a new saving correctly aggregates existing data."""
+        data = {
+            "username": "financer",
+            "amount_saved": 1000
+        }
+        
+        serializer = SavingSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        saving = serializer.save()
+
+        # Math check: Total Savings (1000), Total Loan (200), Net (800)
+        self.assertEqual(saving.total_savings, 1000)
+        self.assertEqual(saving.total_loan, 200)
+        self.assertEqual(saving.net_saving, 800)
+
+    def test_sequential_savings_update_history(self):
+        """Ensure subsequent savings update the 'total' fields on old records."""
+        # First saving
+        Saving.objects.create(
+            person_saving=self.user, amount_saved=500, 
+            total_savings=500, total_loan=200, net_saving=300
+        )
+        
+        # Second saving via Serializer
+        data = {"username": "financer", "amount_saved": 500}
+        serializer = SavingSerializer(data=data)
+        serializer.is_valid()
+        new_saving = serializer.save()
+
+        # Check the NEW record
+        self.assertEqual(new_saving.total_savings, 1000)
+        
+        # Check that the OLD record was updated by the .update() call in create()
+        old_saving = Saving.objects.exclude(id=new_saving.id).first()
+        self.assertEqual(old_saving.total_savings, 1000)
+        self.assertEqual(old_saving.net_saving, 800)
+
+    def test_invalid_username_raises_error(self):
+        """Test that a non-existent username fails validation."""
+        data = {"username": "ghost_user", "amount_saved": 100}
+        serializer = SavingSerializer(data=data)
+        
+        # This will trigger the try/except block in your create() method
