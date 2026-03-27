@@ -166,3 +166,44 @@ class LoanModelTest(TestCase):
         """Test the __str__ output for clarity."""
         loan = Loan.objects.create(person_loaning=self.user, amount_loaned=750)
         self.assertEqual(str(loan), "borrower1 loaned 750")
+        
+        
+        
+        
+        
+
+
+
+
+from django.test import TestCase
+from django.db.utils import IntegrityError
+from .models import Player
+
+class PlayerModelTest(TestCase):
+
+    def test_create_player_with_valid_position(self):
+        """Test creating a player with a valid position choice."""
+        player = Player.objects.create(name="Denis Onyango", position="GK")
+        self.assertEqual(player.name, "Denis Onyango")
+        self.assertEqual(player.position, "GK")
+        # Check if the human-readable name matches the choices list
+        self.assertEqual(player.get_position_display(), "Goal Keeper")
+
+    def test_player_name_uniqueness(self):
+        """Test that duplicate names are not allowed."""
+        Player.objects.create(name="Khalid Aucho", position="Midfielder")
+        with self.assertRaises(IntegrityError):
+            Player.objects.create(name="Khalid Aucho", position="Defender")
+
+    def test_str_representation(self):
+        """Verify the __str__ method returns the player's name."""
+        player = Player.objects.create(name="Farouk Miya", position="Forward")
+        self.assertEqual(str(player), "Farouk Miya")
+
+    def test_all_roles_are_storable(self):
+        """Quickly verify that every key in POSITION can be saved to the database."""
+        roles = [role[0] for role in Player.POSITION]
+        for i, role_key in enumerate(roles):
+            Player.objects.create(name=f"Staff_{i}", position=role_key)
+        
+        self.assertEqual(Player.objects.count(), len(roles))
