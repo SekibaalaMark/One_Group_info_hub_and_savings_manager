@@ -113,3 +113,56 @@ class SavingModelTest(TestCase):
             net_saving=100
         )
         self.assertIsNotNone(saving.date_saved)
+        
+        
+        
+        
+        
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from .models import Loan
+
+User = get_user_model()
+
+class LoanModelTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='borrower1', 
+            email='borrower@test.com', 
+            password='password123'
+        )
+
+    def test_loan_creation(self):
+        """Verify a loan can be created and linked to a user."""
+        loan = Loan.objects.create(
+            person_loaning=self.user,
+            amount_loaned=1000
+        )
+        self.assertEqual(loan.amount_loaned, 1000)
+        self.assertEqual(loan.person_loaning.username, 'borrower1')
+
+    def test_multiple_loans_per_user(self):
+        """Ensure the 'loans' related_name allows tracking multiple loans."""
+        Loan.objects.create(person_loaning=self.user, amount_loaned=500)
+        Loan.objects.create(person_loaning=self.user, amount_loaned=300)
+        
+        self.assertEqual(self.user.loans.count(), 2)
+        total_debt = sum(l.amount_loaned for l in self.user.loans.all())
+        self.assertEqual(total_debt, 800)
+
+    def test_loan_deletion_on_user_delete(self):
+        """Verify CASCADE: if a user is deleted, their loans are also deleted."""
+        Loan.objects.create(person_loaning=self.user, amount_loaned=500)
+        self.assertEqual(Loan.objects.count(), 1)
+        
+        self.user.delete()
+        self.assertEqual(Loan.objects.count(), 0)
+
+    def test_loan_str_representation(self):
+        """Test the __str__ output for clarity."""
+        loan = Loan.objects.create(person_loaning=self.user, amount_loaned=750)
+        self.assertEqual(str(loan), "borrower1 loaned 750")
