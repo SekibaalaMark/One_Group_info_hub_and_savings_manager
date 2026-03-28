@@ -369,3 +369,44 @@ class RegisterPlayerSerializerTest(TestCase):
         serializer = RegisterPlayerSerializer(data={"name": "Only Name"})
         self.assertFalse(serializer.is_valid())
         self.assertIn('position', serializer.errors)
+        
+        
+        
+
+
+
+
+from django.test import TestCase
+from .models import Player
+from .serializers import DeletePlayerSerializer
+
+class DeletePlayerSerializerTest(TestCase):
+
+    def setUp(self):
+        # Create a player to test deletion validation
+        self.player = Player.objects.create(name="Khalid Aucho", position="Midfielder")
+
+    def test_validate_existing_player(self):
+        """Test that a name that exists in the DB passes validation."""
+        data = {"name": "Khalid Aucho"}
+        serializer = DeletePlayerSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data['name'], "Khalid Aucho")
+
+    def test_validate_non_existent_player_fails(self):
+        """Test that a name NOT in the DB triggers the ValidationError."""
+        data = {"name": "Non Existent Player"}
+        serializer = DeletePlayerSerializer(data=data)
+        
+        self.assertFalse(serializer.is_valid())
+        # Check that the specific field 'name' has the error
+        self.assertIn('name', serializer.errors)
+        self.assertEqual(serializer.errors['name'][0], "No player with this name exists.")
+
+    def test_case_sensitivity(self):
+        """Verify if your search is case-sensitive (Django defaults to sensitive)."""
+        data = {"name": "khalid aucho"} # Lowercase version
+        serializer = DeletePlayerSerializer(data=data)
+        
+        # Unless you use __iexact in your filter, this will likely fail
+        self.assertFalse(serializer.is_valid())
