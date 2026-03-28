@@ -572,3 +572,75 @@ class PasswordResetRequestSerializerTest(TestCase):
         
         self.assertFalse(serializer.is_valid())
         self.assertIn('email', serializer.errors)
+        
+        
+        
+        
+        
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from users.serializers import PasswordResetSerializer
+
+User = get_user_model()
+
+class PasswordResetSerializerTest(TestCase):
+
+    def setUp(self):
+        # Create a user with a specific confirmation code
+        self.user = User.objects.create_user(
+            username='reset_target',
+            email='target@gmail.com',
+            password='old_password123'
+        )
+        self.user.confirmation_code = "654321"
+        self.user.save()
+
+        self.valid_data = {
+            "email": "target@gmail.com",
+            "confirmation_code": "654321",
+            "new_password": "brand_new_pass_123",
+            "confirm_password": "brand_new_pass_123"
+        }
+
+    def test_successful_reset(self):
+        """Verify valid code and matching passwords update the user."""
+        serializer = PasswordResetSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid())
+        serializer.save()
+
+        self.user.refresh_from_db()
+        # Verify password changed
+        self.assertTrue(self.user.check_password("brand_new_pass_123"))
+        # Verify code was cleared for security
+        self.assertEqual(self.user.confirmation_code, "")
+
+    def test_password_mismatch_fails(self):
+        """Test that non-matching new passwords trigger a validation error."""
+        invalid_data = self.valid_data.copy()
+        invalid_data["confirm_password"] = "different_pass_456"
+        
+        serializer = PasswordResetSerializer(data=invalid_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['non_field_errors'][0], "Passwords do not match.")
+
+    def test_invalid_confirmation_code_fails(self):
+        """Test that an incorrect code is rejected even if email is correct."""
+        invalid_data = self.valid_data.copy()
+        invalid_data["confirmation_code"] = "000000"
+        
+        serializer = PasswordResetSerializer(data=invalid_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['non_field_errors'][0], "Invalid email or confirmation code.")
+
+    def test_password_length_enforcement(self):
+        """Verify the min_length=8 constraint is working."""
+        invalid_data = self.valid_data.copy()
+        invalid_data["new_password"] = "short"
+        invalid_data["confirm_password"] = "short"
+        
+        serializer = PasswordResetSerializer(data=invalid_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('new_password', serializer.errors)
