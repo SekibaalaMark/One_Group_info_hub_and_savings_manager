@@ -410,3 +410,40 @@ class DeletePlayerSerializerTest(TestCase):
         
         # Unless you use __iexact in your filter, this will likely fail
         self.assertFalse(serializer.is_valid())
+        
+        
+        
+        
+        
+
+
+from django.test import TestCase
+from .models import Player
+from .serializers import PlayerSerializer
+
+class PlayerSerializerTest(TestCase):
+
+    def setUp(self):
+        # Create a sample player for the "Read" test
+        self.player_attributes = {
+            'name': 'Denis Onyango',
+            'position': 'GK'
+        }
+        self.player = Player.objects.create(**self.player_attributes)
+        self.serializer = PlayerSerializer(instance=self.player)
+
+    def test_contains_expected_fields(self):
+        """Verify the serializer output contains exactly the fields we defined."""
+        data = self.serializer.data
+        self.assertCountEqual(data.keys(), ['id', 'name', 'position'])
+
+    def test_field_content(self):
+        """Check that the data values match the database record."""
+        data = self.serializer.data
+        self.assertEqual(data['name'], self.player_attributes['name'])
+        self.assertEqual(data['position'], self.player_attributes['position'])
+
+    def test_id_is_present(self):
+        """Ensure the 'id' (primary key) is included in the output."""
+        # This is important for front-end apps to identify specific records
+        self.assertIsNotNone(self.serializer.data['id'])
