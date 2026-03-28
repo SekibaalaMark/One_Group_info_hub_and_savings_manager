@@ -524,3 +524,51 @@ class LoanPaymentSerializerTest(TestCase):
         serializer = LoanPaymentSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertIn('amount_paid', serializer.errors)
+        
+        
+        
+        
+        
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from users.serializers import PasswordResetRequestSerializer
+
+User = get_user_model()
+
+class PasswordResetRequestSerializerTest(TestCase):
+
+    def setUp(self):
+        # Create a user that actually exists in the system
+        self.user = User.objects.create_user(
+            username='existing_user',
+            email='real_user@gmail.com',
+            password='password123'
+        )
+
+    def test_valid_existing_email_passes(self):
+        """Test that an email registered in the system is valid."""
+        data = {"email": "real_user@gmail.com"}
+        serializer = PasswordResetRequestSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data['email'], "real_user@gmail.com")
+
+    def test_non_existent_email_fails(self):
+        """Test that the custom validate_email method catches missing users."""
+        data = {"email": "stranger@gmail.com"}
+        serializer = PasswordResetRequestSerializer(data=data)
+        
+        self.assertFalse(serializer.is_valid())
+        # The error should be attached to the 'email' field
+        self.assertIn('email', serializer.errors)
+        self.assertEqual(serializer.errors['email'][0], "User with this email does not exist.")
+
+    def test_malformed_email_fails(self):
+        """Test that standard EmailField validation still works."""
+        data = {"email": "not-an-email-at-all"}
+        serializer = PasswordResetRequestSerializer(data=data)
+        
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('email', serializer.errors)
