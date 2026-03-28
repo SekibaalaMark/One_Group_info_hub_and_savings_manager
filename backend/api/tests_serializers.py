@@ -315,3 +315,57 @@ class LoanSerializerTest(TestCase):
         loan = serializer.save()
         self.assertEqual(Loan.objects.filter(person_loaning=new_user).count(), 1)
         self.assertEqual(Saving.objects.filter(person_saving=new_user).count(), 0)
+        
+        
+        
+        
+
+
+
+
+from django.test import TestCase
+from .models import Player
+from .serializers import RegisterPlayerSerializer
+
+class RegisterPlayerSerializerTest(TestCase):
+
+    def setUp(self):
+        self.valid_data = {
+            "name": "Denis Onyango",
+            "position": "GK"
+        }
+
+    def test_serializer_with_valid_data(self):
+        """Test that a valid player and position are accepted."""
+        serializer = RegisterPlayerSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid())
+        player = serializer.save()
+        
+        self.assertEqual(player.name, "Denis Onyango")
+        self.assertEqual(player.position, "GK")
+
+    def test_duplicate_player_name_fails(self):
+        """Test that the serializer enforces the unique name constraint."""
+        # Create an existing player
+        Player.objects.create(name="Denis Onyango", position="GK")
+        
+        serializer = RegisterPlayerSerializer(data=self.valid_data)
+        self.assertFalse(serializer.is_valid())
+        # Note: Your custom validate() raises a ValidationError which usually 
+        # ends up in 'non_field_errors' in DRF.
+        self.assertIn('non_field_errors', serializer.errors)
+
+    def test_invalid_position_choice(self):
+        """Test that a position not in the POSITION list is rejected."""
+        invalid_data = {
+            "name": "New Player",
+            "position": "Striker" # Assuming 'Striker' isn't in your shorthand keys
+        }
+        serializer = RegisterPlayerSerializer(data=invalid_data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_missing_required_fields(self):
+        """Test that name and position are strictly required."""
+        serializer = RegisterPlayerSerializer(data={"name": "Only Name"})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('position', serializer.errors)
