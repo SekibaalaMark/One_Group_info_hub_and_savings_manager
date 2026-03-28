@@ -447,3 +447,80 @@ class PlayerSerializerTest(TestCase):
         """Ensure the 'id' (primary key) is included in the output."""
         # This is important for front-end apps to identify specific records
         self.assertIsNotNone(self.serializer.data['id'])
+        
+        
+        
+        
+        
+        
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from .models import Saving, Loan
+from .serializers import LoanPaymentSerializer
+
+User = get_user_model()
+
+class LoanPaymentSerializerTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='payer', 
+            email='payer@gmail.com', 
+            password='password123'
+        )
+        
+        # 1. Setup an existing Loan (Debt: 1000)
+        Loan.objects.create(person_loaning=self.user, amount_loaned=1000)
+        
+        # 2. Setup an existing Saving record
+        Saving.objects.create(
+            person_saving=self.user,
+            amount_saved=2000,
+            total_savings=2000,
+            total_loan=1000,
+            net_saving=1000
+        )
+
+    def test_successful_loan_payment(self):
+        """Verify that a valid payment reduces debt and increases net savings."""
+        data = {"username": "payer", "amount_paid": 400}
+        serializer = LoanPaymentSerializer(data=data)
+        
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        payment = serializer.save()
+
+        # Check the 'payment' entry is negative
+        self.assertEqual(payment.amount_loaned, -400)
+
+        # Check that Savings record was updated correctly
+        saved_record = Saving.objects.get(person_saving=self.user)
+        self.assertEqual(saved_record.total_loan, 600)  # 1000 - 400
+        self.assertEqual(saved_record.net_saving, 1400) # 2000 - 600
+
+    def test_overpayment_fails(self):
+        """Ensure users cannot pay more than what they owe."""
+        data = {"username": "payer", "amount_paid": 1500} # Owed only 1000
+        serializer = LoanPaymentSerializer(data=data)
+        
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("non_field_errors", serializer.errors)
+        self.assertIn("cannot exceed outstanding loan balance", serializer.errors["non_field_errors"][0])
+
+    def test_payment_with_no_outstanding_loans(self):
+        """Ensure a user with 0 debt cannot make a payment."""
+        new_user = User.objects.create_user(username='debt_free', email='df@gmail.com', password='p')
+        data = {"username": "debt_free", "amount_paid": 100}
+        
+        serializer = LoanPaymentSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors["non_field_errors"][0], "User 'debt_free' has no outstanding loans to pay.")
+
+    def test_min_value_validation(self):
+        """Check that amount_paid must be at least 1."""
+        data = {"username": "payer", "amount_paid": 0}
+        serializer = LoanPaymentSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('amount_paid', serializer.errors)
