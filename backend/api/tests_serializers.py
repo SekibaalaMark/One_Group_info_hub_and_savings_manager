@@ -644,3 +644,54 @@ class PasswordResetSerializerTest(TestCase):
         serializer = PasswordResetSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())
         self.assertIn('new_password', serializer.errors)
+        
+        
+        
+        
+        
+
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from users.serializers import UsernameSerializer
+
+User = get_user_model()
+
+class UsernameSerializerTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='spotlight_user',
+            email='spotlight@gmail.com',
+            password='password123'
+        )
+        self.serializer = UsernameSerializer(instance=self.user)
+
+    def test_serialization_contains_only_username(self):
+        """Verify that only the username field is exported to JSON."""
+        data = self.serializer.data
+        
+        # Check that 'username' is present and correct
+        self.assertEqual(data['username'], 'spotlight_user')
+        
+        # CRITICAL: Ensure no other fields leaked into the response
+        self.assertEqual(len(data.keys()), 1)
+        self.assertNotIn('email', data)
+        self.assertNotIn('id', data)
+
+    def test_deserialization_valid_data(self):
+        """Test that the serializer can validate a new username."""
+        data = {'username': 'new_candidate'}
+        serializer = UsernameSerializer(data=data)
+        
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data['username'], 'new_candidate')
+
+    def test_duplicate_username_fails(self):
+        """Verify the unique constraint is respected during validation."""
+        data = {'username': 'spotlight_user'}
+        serializer = UsernameSerializer(data=data)
+        
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('username', serializer.errors)
