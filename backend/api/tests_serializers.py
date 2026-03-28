@@ -695,3 +695,64 @@ class UsernameSerializerTest(TestCase):
         
         self.assertFalse(serializer.is_valid())
         self.assertIn('username', serializer.errors)
+        
+        
+        
+        
+        
+
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from savings.models import Saving
+from loans.models import Loan
+from users.serializers import UserFinancialDetailsSerializer
+
+User = get_user_model()
+
+class UserFinancialDetailsSerializerTest(TestCase):
+
+    def setUp(self):
+        # 1. Create the user
+        self.user = User.objects.create_user(
+            username='dashboard_user',
+            email='dash@gmail.com',
+            password='password123'
+        )
+
+        # 2. Add some savings (Total: 1500)
+        Saving.objects.create(person_saving=self.user, amount_saved=1000, total_savings=1000, total_loan=0, net_saving=1000)
+        Saving.objects.create(person_saving=self.user, amount_saved=500, total_savings=1500, total_loan=0, net_saving=1500)
+
+        # 3. Add some loans (Total: 400)
+        Loan.objects.create(person_loaning=self.user, amount_loaned=300)
+        Loan.objects.create(person_loaning=self.user, amount_loaned=100)
+
+    def test_financial_aggregation_logic(self):
+        """Verify that the SerializerMethodFields sum up data correctly."""
+        serializer = UserFinancialDetailsSerializer(instance=self.user)
+        data = serializer.data
+
+        # Check Savings Sum
+        self.assertEqual(data['total_savings'], 1500)
+        
+        # Check Loans Sum
+        self.assertEqual(data['total_loans'], 400)
+        
+        # Check Net Calculation (1500 - 400)
+        self.assertEqual(data['net_savings'], 1100)
+
+    def test_zero_values_for_new_user(self):
+        """Ensure a user with no history returns 0 instead of None."""
+        new_user = User.objects.create_user(username='fresh_user', email='f@gmail.com', password='p')
+        serializer = UserFinancialDetailsSerializer(instance=new_user)
+        
+        self.assertEqual(serializer.data['total_savings'], 0)
+        self.assertEqual(serializer.data['total_loans'], 0)
+        self.assertEqual(serializer.data['net_savings'], 0)
+
+    def test_basic_user_info_inclusion(self):
+        """Verify core user fields are still present alongside financial data."""
+        serializer = UserFinancialDetailsSerializer(instance=self.user)
+        self.assertEqual(serializer.data['username'], 'dashboard_user')
+        self.assertEqual(serializer.data['email'], 'dash@gmail.com')
